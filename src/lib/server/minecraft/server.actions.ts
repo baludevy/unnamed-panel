@@ -167,3 +167,31 @@ export async function stopMinecraftServer(serverId: string) {
 
 	await DockerService.stopContainer(containerId);
 }
+
+export async function editMinecraftServer(
+	serverId: string,
+	payload: Partial<ServerCreationPayload>
+) {
+	const server = await ServerRepository.getById(serverId);
+	if (!server) throw new Error('Server not found');
+
+	const updatedData = {
+		name: payload.name ?? server.name,
+		port: payload.port ?? server.port,
+		version: payload.version ?? server.version,
+		type: (payload.type ?? server.type) as 'VANILLA' | 'FORGE' | 'FABRIC' | 'SPIGOT',
+		directory: payload.directory ? path.resolve(payload.directory) : server.directory
+	};
+
+	if (payload.port && payload.port !== server.port) {
+		await ensurePortFree(payload.port);
+	}
+
+	if (payload.directory && updatedData.directory !== server.directory) {
+		await ensureDataDirFree(updatedData.directory);
+	}
+
+	await ServerRepository.update(serverId, updatedData);
+
+	return true;
+}

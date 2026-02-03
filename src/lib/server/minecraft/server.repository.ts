@@ -33,5 +33,18 @@ export const ServerRepository = {
 
 	async delete(id: string) {
 		return prisma.server.delete({ where: { id } });
+	},
+
+	async update(id: string, data: Partial<ServerCreationPayload>) {
+		return prisma.server.update({
+			where: { id },
+			data: {
+				name: data.name,
+				port: data.port,
+				version: data.version,
+				type: data.type,
+				directory: data.directory
+			}
+		});
 	}
 };
