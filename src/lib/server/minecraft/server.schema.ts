@@ -21,7 +21,7 @@ const VersionRegex = z
 
 export const ServerCreateSchema = z.object({
 	name: z.string().trim().min(3),
-	hostPort: z.number().int().min(1024).max(65535).optional().default(25565),
+	port: z.number().int().min(1024).max(65535).optional().default(25565),
 	version: z.string().default('latest'),
 	type: z.enum(['VANILLA', 'FORGE', 'FABRIC', 'SPIGOT']).default('VANILLA'),
 	directory: z.string(),
