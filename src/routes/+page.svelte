@@ -1,2 +1,8 @@
-<h1>Welcome to SvelteKit</h1>
-<p>Visit <a href="https://svelte.dev/docs/kit">svelte.dev/docs/kit</a> to read the documentation</p>
+<script lang="ts">
+	import Server from '$lib/components/ui/server/server.svelte';
+</script>
+
+<div class="flex flex-col container mx-auto px-[20%] gap-3">
+	<Server serverName="Server 1" status="running" />
+	<Server serverName="Server 2" status="stopped" />
+</div>
