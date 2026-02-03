@@ -1,7 +1,7 @@
 import { json, type RequestHandler } from '@sveltejs/kit';
 import { z } from 'zod';
 import { ServerStartSchema, type ServerStartPayload } from '$lib/server/minecraft/server.schema';
-import { startMinecraftServer } from '$lib/server/minecraft/server.actions';
+import { restartMinecraftServer } from '$lib/server/minecraft/server.actions';
 
 export const POST: RequestHandler = async ({ request }) => {
 	let payload: ServerStartPayload;
@@ -22,10 +22,10 @@ export const POST: RequestHandler = async ({ request }) => {
 	}
 
 	try {
-		await startMinecraftServer(payload.id);
-		return json({ message: `Server ${payload.id} started successfully` });
+		await restartMinecraftServer(payload.id);
+		return json({ message: `Server ${payload.id} restarted successfully` });
 	} catch (error: any) {
-		console.error(`Failed to start server ${payload.id}:`, error.message);
-		return json({ error: 'Failed to start server', details: error.message }, { status: 500 });
+		console.error(`Failed to restart server ${payload.id}:`, error.message);
+		return json({ error: 'Failed to restart server', details: error.message }, { status: 500 });
 	}
 };

@@ -1,11 +1,11 @@
 import { json, type RequestHandler } from '@sveltejs/kit';
 import { z } from 'zod';
-import { ServerCreateSchema, type ServerCreationPayload } from '$lib/server/minecraft/schema';
+import { ServerCreateSchema, type ServerCreationPayload } from '$lib/server/minecraft/server.schema';
 import {
 	createMinecraftServer,
 	listMinecraftServers,
 	removeMinecraftServer
-} from '$lib/server/minecraft/service';
+} from '$lib/server/minecraft/server.actions';
 
 export const GET: RequestHandler = async () => {
 	const servers = await listMinecraftServers();
