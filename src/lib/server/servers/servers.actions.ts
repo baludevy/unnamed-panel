@@ -1,16 +1,16 @@
 import path from 'node:path';
 import fs from 'node:fs/promises';
-import { ServerRepository } from './server.repository';
+import { ServerRepository } from './servers.repository';
 import { DockerService } from './docker.service';
-import { generateServerId } from './server.helper';
+import { generateServerId } from './servers.helper';
 import {
 	ensurePortFree,
 	ensureDataDirFree,
 	ensureImageExists,
 	ensureContainerMatchesDb,
 	MC_IMAGE
-} from './server.helper';
-import type { ServerCreationPayload, MinecraftServerInfo } from './server.schema';
+} from './servers.helper';
+import type { ServerCreationPayload, MinecraftServerInfo } from './servers.schema';
 import docker from '$lib/server/docker/client';
 
 export async function listMinecraftServers(): Promise<MinecraftServerInfo[]> {

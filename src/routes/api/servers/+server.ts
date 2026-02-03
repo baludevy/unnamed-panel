@@ -3,12 +3,12 @@ import { z } from 'zod';
 import {
 	ServerCreateSchema,
 	type ServerCreationPayload
-} from '$lib/server/minecraft/server.schema';
+} from '$lib/server/servers/servers.schema';
 import {
 	createMinecraftServer,
 	listMinecraftServers,
 	removeMinecraftServer
-} from '$lib/server/minecraft/server.actions';
+} from '$lib/server/servers/servers.actions';
 
 export const GET: RequestHandler = async () => {
 	const servers = await listMinecraftServers();

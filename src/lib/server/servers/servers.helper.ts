@@ -3,7 +3,7 @@ import path from 'node:path';
 import net from 'node:net';
 import { DockerService } from './docker.service';
 import type { ContainerInfo } from 'dockerode';
-import { ServerRepository } from './server.repository';
+import { ServerRepository } from './servers.repository';
 
 export const MC_IMAGE = 'itzg/minecraft-server';
 
