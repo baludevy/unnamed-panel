@@ -2,49 +2,68 @@ import { prisma } from '$lib/server/prisma/prisma';
 import type { ServerCreationPayload } from './servers.schema';
 
 export const ServerRepository = {
-	async getAll() {
-		return prisma.server.findMany();
-	},
+    async getAll() {
+        const servers = await prisma.server.findMany();
+        return servers.map(s => ({
+            ...s,
+            additionalPorts: JSON.parse(s.additionalPorts)
+        }));
+    },
 
-	async getById(id: string) {
-		return prisma.server.findUnique({ where: { id } });
-	},
+    async getById(id: string) {
+        const server = await prisma.server.findUnique({ where: { id } });
+        if (!server) return null;
+        return {
+            ...server,
+            additionalPorts: JSON.parse(server.additionalPorts)
+        };
+    },
 
-	async create(id: string, containerId: string, payload: ServerCreationPayload, directory: string) {
-		return prisma.server.create({
-			data: {
-				id,
-				containerId,
-				name: payload.name,
-				port: payload.port,
-				version: payload.version,
-				type: payload.type,
-				directory
-			}
-		});
-	},
+    async create(id: string, containerId: string, payload: ServerCreationPayload, directory: string) {
+        const server = await prisma.server.create({
+            data: {
+                id,
+                containerId,
+                name: payload.name,
+                port: payload.port,
+                containerPort: payload.containerPort,
+                additionalPorts: JSON.stringify(payload.additionalPorts),
+                version: payload.version,
+                type: payload.type,
+                directory,
+                cpuLimit: payload.cpuLimit,
+                memoryLimit: payload.memoryLimit
+            }
+        });
+        return {
+            ...server,
+            additionalPorts: JSON.parse(server.additionalPorts)
+        };
+    },
 
-	async updateContainerId(id: string, containerId: string) {
-		return prisma.server.update({
-			where: { id },
-			data: { containerId }
-		});
-	},
+    async update(id: string, data: any) {
+        if (data.additionalPorts) {
+            data.additionalPorts = JSON.stringify(data.additionalPorts);
+        }
+        
+        const server = await prisma.server.update({
+            where: { id },
+            data
+        });
+        return {
+            ...server,
+            additionalPorts: JSON.parse(server.additionalPorts)
+        };
+    },
 
-	async delete(id: string) {
-		return prisma.server.delete({ where: { id } });
-	},
+    async updateContainerId(id: string, containerId: string) {
+        return prisma.server.update({
+            where: { id },
+            data: { containerId }
+        });
+    },
 
-	async update(id: string, data: Partial<ServerCreationPayload>) {
-		return prisma.server.update({
-			where: { id },
-			data: {
-				name: data.name,
-				port: data.port,
-				version: data.version,
-				type: data.type,
-				directory: data.directory
-			}
-		});
-	}
+    async delete(id: string) {
+        return prisma.server.delete({ where: { id } });
+    }
 };

@@ -37,7 +37,7 @@
 						? 'text-secondary-foreground'
 						: 'text-secondary-foreground/30'}"
 				>
-					<p class="bg-secondary p-1.5 rounded-[0.5rem] text-sm min-w-[3rem] text-center">
+					<p class="bg-secondary p-1.5 rounded-[0.5rem] text-sm min-w-[2rem] text-center">
 						{displayCpu}
 					</p>
 					<p class="text-xs text-secondary-foreground/30 font-semibold">CPU</p>
@@ -48,7 +48,7 @@
 						? 'text-secondary-foreground'
 						: 'text-secondary-foreground/30'}"
 				>
-					<p class="bg-secondary p-1.5 rounded-[0.5rem] text-sm min-w-[5rem] text-center">
+					<p class="bg-secondary p-1.5 rounded-[0.5rem] text-sm min-w-[4rem] text-center">
 						{displayMem}
 					</p>
 					<p class="text-xs text-secondary-foreground/30 font-semibold">MEMORY</p>
