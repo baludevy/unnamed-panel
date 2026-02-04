@@ -71,9 +71,13 @@ export async function ensureContainerMatchesDb(server: any) {
 	if (container) {
 		const needsFix = await DockerService.needsRecreation(container.Id, {
 			port: server.port,
+			containerPort: server.containerPort,
+			additionalPorts: server.additionalPorts,
 			version: server.version,
 			type: server.type,
-			directory: server.directory
+			directory: server.directory,
+			cpuLimit: server.cpuLimit,
+			memoryLimit: server.memoryLimit
 		});
 
 		if (needsFix) {
@@ -86,11 +90,15 @@ export async function ensureContainerMatchesDb(server: any) {
 		const newContainer = await DockerService.createServerContainer({
 			name: server.name,
 			port: server.port,
+			containerPort: server.containerPort,
+			additionalPorts: server.additionalPorts,
 			version: server.version,
 			type: server.type,
+			directory: server.directory,
 			eula: true,
 			serverId: server.id,
-			directory: server.directory
+			cpuLimit: server.cpuLimit,
+			memoryLimit: server.memoryLimit
 		});
 
 		await ServerRepository.updateContainerId(server.id, newContainer.id);

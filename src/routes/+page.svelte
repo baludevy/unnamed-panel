@@ -26,7 +26,7 @@
 	});
 </script>
 
-<div class="flex flex-col container mx-auto px-[20%] gap-3">
+<div class="flex flex-col container mx-auto px-[20%] py-2 gap-3">
 	{#each data.servers as server}
 		{@const live = stats[server.id]}
 
