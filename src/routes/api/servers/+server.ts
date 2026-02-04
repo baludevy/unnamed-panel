@@ -1,9 +1,6 @@
 import { json, type RequestHandler } from '@sveltejs/kit';
 import { z } from 'zod';
-import {
-	ServerCreateSchema,
-	type ServerCreationPayload
-} from '$lib/server/servers/servers.schema';
+import { ServerCreateSchema, type ServerCreationPayload } from '$lib/server/servers/servers.schema';
 import {
 	createMinecraftServer,
 	listMinecraftServers,

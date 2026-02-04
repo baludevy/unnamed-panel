@@ -7,17 +7,9 @@ export interface MinecraftServerInfo {
 	version: string;
 	type: string;
 	directory: string;
+	containerId?: string | null;
 	state: string;
 }
-
-const VERSION_PATTERN = /^[\d\.]+w[\d]+[a-z]|[\d\.\-]+(pre|rc)?[\d]*$/;
-
-const VersionRegex = z
-	.string()
-	.regex(
-		VERSION_PATTERN,
-		'Version format is invalid. must be x.x.x, x.x.x-preN, or snapshot format.'
-	);
 
 export const ServerCreateSchema = z.object({
 	name: z.string().trim().min(3),
