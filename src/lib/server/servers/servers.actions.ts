@@ -3,44 +3,33 @@ import fs from 'node:fs/promises';
 import { ServerRepository } from './servers.repository';
 import { DockerService } from './docker.service';
 import { generateServerId } from './servers.helper';
-import {
-	ensurePortFree,
-	ensureDataDirFree,
-	ensureImageExists,
-	ensureContainerMatchesDb,
-	MC_IMAGE
-} from './servers.helper';
+import { ensurePortFree, ensureDataDirFree, ensureImageExists, MC_IMAGE } from './servers.helper';
 import type { ServerCreationPayload, MinecraftServerInfo } from './servers.schema';
 import docker from '$lib/server/docker/client';
+import type { ContainerInfo } from 'dockerode';
+
+let containerCache: ContainerInfo[] = [];
+
+export async function refreshContainerCache() {
+	containerCache = await docker.listContainers({ all: true });
+}
 
 export async function listMinecraftServers(): Promise<MinecraftServerInfo[]> {
-	const [servers, containers] = await Promise.all([
-		ServerRepository.getAll(),
-		docker.listContainers({ all: true })
-	]);
+	await refreshContainerCache();
+	const servers = await ServerRepository.getAll();
 
-	return Promise.all(
-		servers.map(async (server) => {
-			let container = containers.find((c) => c.Id === server.containerId);
+	return servers.map((server) => {
+		const container =
+			containerCache.find((c) => c.Id === server.containerId) ||
+			containerCache.find((c) => c.Labels?.['mc.server_id'] === server.id);
 
-			if (!container) {
-				container = containers.find((c) => c.Labels?.['mc.server_id'] === server.id) || undefined;
-				if (container) {
-					await ServerRepository.updateContainerId(server.id, container.Id);
-				}
-			}
+		const currentState = container ? container.State : 'missing';
 
-			return {
-				id: server.id,
-				name: server.name,
-				port: server.port,
-				version: server.version,
-				type: server.type,
-				directory: server.directory,
-				state: container ? container.State : 'missing'
-			};
-		})
-	);
+		return {
+			...server,
+			state: currentState
+		};
+	});
 }
 
 export async function createMinecraftServer(payload: ServerCreationPayload) {
@@ -58,7 +47,9 @@ export async function createMinecraftServer(payload: ServerCreationPayload) {
 			directory: absDir
 		});
 
-		return await ServerRepository.create(serverId, container.id, payload, absDir);
+		const server = await ServerRepository.create(serverId, container.id, payload, absDir);
+		await refreshContainerCache();
+		return server;
 	} catch (err: any) {
 		const msg = err?.json?.message || err?.message || '';
 		if (msg.includes('port is already allocated')) {
@@ -82,10 +73,9 @@ export async function removeMinecraftServer(serverId: string, deleteData = true)
 	}
 
 	await ServerRepository.delete(serverId);
+	await refreshContainerCache();
 	return true;
 }
-
-import type { ContainerInfo } from 'dockerode';
 
 export async function startMinecraftServer(serverId: string) {
 	const server = await ServerRepository.getById(serverId);
@@ -121,9 +111,8 @@ export async function startMinecraftServer(serverId: string) {
 
 		await ServerRepository.updateContainerId(server.id, newContainer.id);
 		wasRecreated = true;
-
-		const list = await docker.listContainers({ all: true, filters: { id: [newContainer.id] } });
-		container = list[0] || null;
+		await refreshContainerCache();
+		container = containerCache.find((c) => c.Id === newContainer.id) || null;
 	}
 
 	if (container && !wasRecreated) {
@@ -132,6 +121,7 @@ export async function startMinecraftServer(serverId: string) {
 			await DockerService.startContainer(container.Id);
 		}
 	}
+	await refreshContainerCache();
 }
 
 export async function restartMinecraftServer(serverId: string) {
@@ -166,6 +156,7 @@ export async function stopMinecraftServer(serverId: string) {
 	}
 
 	await DockerService.stopContainer(containerId);
+	await refreshContainerCache();
 }
 
 export async function editMinecraftServer(
@@ -192,6 +183,6 @@ export async function editMinecraftServer(
 	}
 
 	await ServerRepository.update(serverId, updatedData);
-
+	await refreshContainerCache();
 	return true;
 }
