@@ -51,15 +51,3 @@ export const ServerCreateSchema = z.object({
 });
 
 export type ServerCreationPayload = z.infer<typeof ServerCreateSchema>;
-
-export const ServerStartSchema = z.object({
-	id: z.string().min(1)
-});
-
-export type ServerStartPayload = z.infer<typeof ServerStartSchema>;
-
-export const ServerStopSchema = z.object({
-	id: z.string().min(1)
-});
-
-export type ServerStopPayload = z.infer<typeof ServerStopSchema>;

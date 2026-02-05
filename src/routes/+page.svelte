@@ -2,12 +2,15 @@
 	import { onMount } from 'svelte';
 	import Server from '$lib/components/ui/server/server.svelte';
 	import type { ServerInfo } from '$lib/server/servers/schema';
+	import { getAllServerInfo } from '$lib/api/server';
 
-	export let data: { servers: ServerInfo[] };
-
+	let servers: ServerInfo[] = [];
 	let serverStats: Record<string, any> = {};
 
 	onMount(() => {
+		getAllServerInfo().then((info) => {
+			servers = info;
+		});
 		subscribeToStats();
 	});
 
@@ -29,7 +32,7 @@
 </script>
 
 <div class="flex flex-col container mx-auto px-[15%] py-2 gap-3">
-	{#each data.servers as server}
+	{#each servers as server}
 		{@const live = serverStats[server.id]}
 
 		<Server
