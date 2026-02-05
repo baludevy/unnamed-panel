@@ -1,14 +1,5 @@
 import { DockerService } from './docker.service';
-
-export interface ServerStats {
-	id: string;
-	name: string;
-	cpu: number;
-	memory: number;
-	uptime: string;
-	status: string;
-	startTime?: number;
-}
+import type { ServerStats } from './schema';
 
 const statsCache = new Map<string, ServerStats>();
 const activeStreams = new Map<string, any>();
@@ -64,8 +55,8 @@ export async function getOrStartStats(
 					systemDelta > 0 ? (cpuDelta / systemDelta) * (stats.cpu_stats.online_cpus || 1) * 100 : 0;
 
 				statsCache.set(serverId, {
-					id: serverId,
 					name: serverName,
+					id: serverId,
 					cpu: Number(cpuPercent.toFixed(2)),
 					memory: stats.memory_stats.usage || 0,
 					uptime: formatDuration(startTime),
