@@ -1,5 +1,5 @@
 import { prisma } from '$lib/server/prisma/prisma';
-import type { ServerCreationPayload } from './servers.schema';
+import type { ServerCreationPayload } from './schema';
 
 export const ServerRepository = {
     async getAll() {

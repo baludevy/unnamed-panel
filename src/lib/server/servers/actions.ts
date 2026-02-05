@@ -2,7 +2,7 @@ import path from 'node:path';
 import fs from 'node:fs/promises';
 import docker from '$lib/server/docker/client';
 import type { ContainerInfo } from 'dockerode';
-import { ServerRepository } from './servers.repository';
+import { ServerRepository } from './repository';
 import { DockerService } from './docker.service';
 import {
 	generateServerId,
@@ -10,8 +10,8 @@ import {
 	ensureDataDirFree,
 	ensureImageExists,
 	MC_IMAGE
-} from './servers.helper';
-import type { ServerCreationPayload, MinecraftServerInfo } from './servers.schema';
+} from './helper';
+import type { ServerCreationPayload, MinecraftServerInfo } from './schema';
 
 let containerCache: ContainerInfo[] = [];
 

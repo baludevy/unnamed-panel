@@ -1,5 +1,5 @@
 import { json, type RequestHandler } from '@sveltejs/kit';
-import { editMinecraftServer } from '$lib/server/servers/servers.actions';
+import { editMinecraftServer } from '$lib/server/servers/actions';
 
 export const PATCH: RequestHandler = async ({ request }) => {
 	try {

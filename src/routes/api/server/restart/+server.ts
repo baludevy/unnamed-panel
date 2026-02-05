@@ -1,7 +1,7 @@
 import { json, type RequestHandler } from '@sveltejs/kit';
 import { z } from 'zod';
-import { ServerStartSchema, type ServerStartPayload } from '$lib/server/servers/servers.schema';
-import { restartMinecraftServer } from '$lib/server/servers/servers.actions';
+import { ServerStartSchema, type ServerStartPayload } from '$lib/server/servers/schema';
+import { restartMinecraftServer } from '$lib/server/servers/actions';
 
 export const POST: RequestHandler = async ({ request }) => {
 	let payload: ServerStartPayload;

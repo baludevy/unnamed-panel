@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import Server from '$lib/components/ui/server/server.svelte';
-	import type { MinecraftServerInfo } from '$lib/server/servers/servers.schema';
+	import type { ServerInfo } from '$lib/server/servers/schema';
 
-	export let data: { servers: MinecraftServerInfo[] };
+	export let data: { servers: ServerInfo[] };
 
 	let stats: Record<string, any> = {};
 
