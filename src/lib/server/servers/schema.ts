@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export interface ServerInfo {
+export interface MinecraftServerInfo {
 	id: string;
 	name: string;
 	port: number;
@@ -13,8 +13,21 @@ export interface ServerInfo {
 	state: string;
 	cpuLimit: number;
 	memoryLimit: number;
+}
+
+export interface ServerInfo extends MinecraftServerInfo {
 	createdAt: string;
 	updatedAt: string;
+}
+
+export interface ServerStats {
+	id: string;
+	name: string;
+	cpu: number;
+	memory: number;
+	uptime: string;
+	status: string;
+	startTime?: number;
 }
 
 export const ServerCreateSchema = z.object({
@@ -50,13 +63,3 @@ export const ServerStopSchema = z.object({
 });
 
 export type ServerStopPayload = z.infer<typeof ServerStopSchema>;
-
-export interface ServerStats {
-	id: string;
-	name: string;
-	cpu: number;
-	memory: number;
-	uptime: string;
-	status: string;
-	startTime?: number;
-}

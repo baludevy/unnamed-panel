@@ -5,14 +5,18 @@
 
 	export let data: { servers: ServerInfo[] };
 
-	let stats: Record<string, any> = {};
+	let serverStats: Record<string, any> = {};
 
 	onMount(() => {
+		subscribeToStats();
+	});
+
+	function subscribeToStats() {
 		const eventSource = new EventSource('/api/servers/stats');
 
 		eventSource.onmessage = (event) => {
 			try {
-				stats = JSON.parse(event.data);
+				serverStats = JSON.parse(event.data);
 			} catch (err) {
 				console.error('Failed to parse stats:', err);
 			}
@@ -21,21 +25,19 @@
 		eventSource.onerror = () => {
 			eventSource.close();
 		};
-
-		return () => eventSource.close();
-	});
+	}
 </script>
 
-<div class="flex flex-col container mx-auto px-[20%] py-2 gap-3">
+<div class="flex flex-col container mx-auto px-[15%] py-2 gap-3">
 	{#each data.servers as server}
-		{@const live = stats[server.id]}
+		{@const live = serverStats[server.id]}
 
 		<Server
 			serverName={server.name}
 			status={live?.status || server.state}
 			cpuUsage={live?.cpu || 0}
 			memoryUsage={live?.memory || 0}
-			memoryLimit={live?.memoryLimit || 0}
+			memoryLimit={server.memoryLimit || 0}
 			uptime={live?.uptime || '00:00:00'}
 		/>
 	{/each}
