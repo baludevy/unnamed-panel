@@ -1,6 +1,6 @@
 import type { ContainerCreateOptions } from 'dockerode';
 import docker from '$lib/server/docker/client';
-import { MC_IMAGE } from '$lib/server/servers/servers.helper';
+import { MC_IMAGE } from '$lib/server/servers/helper';
 import path from 'node:path';
 
 export const DockerService = {
