@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Card, CardContent } from '$lib/components/ui/card';
+	import { formatBytes, formatMegabytes } from '$lib/conversions';
 
 	export let serverName = 'Server';
 	export let status: 'running' | 'stopped' | 'exited' | 'missing' = 'stopped';
@@ -8,16 +9,10 @@
 	export let memoryLimit: number = 0;
 	export let uptime: string = '00:00:00';
 
-	function formatBytes(bytes: number) {
-		if (bytes === 0) return '0 GB';
-		const gb = bytes / (1024 * 1024 * 1024);
-		return gb.toFixed(1) + ' GB';
-	}
-
 	$: isRunning = status === 'running';
 	$: displayCpu = isRunning ? `${cpuUsage}%` : '0%';
 	$: displayMem = isRunning
-		? `${formatBytes(memoryUsage)}/${formatBytes(memoryLimit)}`
+		? `${formatBytes(memoryUsage)}/${formatMegabytes(memoryLimit)}`
 		: `0/${formatBytes(memoryLimit)}`;
 	$: displayUptime = isRunning ? uptime : '00:00:00';
 </script>

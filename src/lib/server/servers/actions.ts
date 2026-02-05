@@ -15,7 +15,7 @@ import type { ServerCreationPayload, MinecraftServerInfo } from './schema';
 
 let containerCache: ContainerInfo[] = [];
 
-export async function refreshContainerCache() {
+async function refreshContainerCache() {
 	containerCache = await docker.listContainers({ all: true });
 }
 
@@ -41,6 +41,28 @@ export async function listMinecraftServers(): Promise<MinecraftServerInfo[]> {
 			state: currentState
 		};
 	});
+}
+
+export async function getMinecraftServerById(id: string): Promise<MinecraftServerInfo | null> {
+	const server = await ServerRepository.getById(id);
+	if (!server) return null;
+
+	const container =
+		containerCache.find((c) => c.Id === server.containerId) ||
+		containerCache.find((c) => c.Labels?.['mc.server_id'] === server.id);
+
+	const currentState = container ? container.State : 'missing';
+
+	const serverWithState = server as typeof server & { state?: string };
+
+	if (serverWithState.state !== currentState) {
+		ServerRepository.update(server.id, { state: currentState }).catch(() => {});
+	}
+
+	return {
+		...server,
+		state: currentState
+	};
 }
 
 export async function createMinecraftServer(payload: ServerCreationPayload) {
