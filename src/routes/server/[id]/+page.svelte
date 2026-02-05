@@ -1,21 +1,23 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import type { ServerInfo, ServerStats } from '$lib/server/servers/schema';
-	import type { PageData } from './$types';
-    import { formatBytes, formatMegabytes } from '$lib/conversions';
+	import { formatBytes, formatMegabytes } from '$lib/conversions';
+	import { getServerInfoById, startServer, stopServer } from '$lib/api/server';
+	import { page } from '$app/state';
+	import Button from '$lib/components/ui/button/button.svelte';
 
-	export let data: PageData;
+	let id: string = page.params.id ?? '';
 
+	let server: ServerInfo | null = null;
 	let serverStats: ServerStats | null = null;
 
-	onMount(() => {
-		if (data.server?.id) {
-			subscribeToStats();
-		}
+	onMount(async () => {
+		subscribeToStats();
+		server = await getServerInfoById(id);
 	});
 
 	function subscribeToStats() {
-		const eventSource = new EventSource(`/api/server/stats/${data.server?.id}`);
+		const eventSource = new EventSource(`/api/server/stats/${id}`);
 
 		eventSource.onmessage = (event) => {
 			try {
@@ -35,12 +37,15 @@
 	}
 </script>
 
-{#if data.server}
-	<h1>{data.server.name}</h1>
+{#if server}
+	<h1>{server.name}</h1>
 	{#if serverStats}
 		<p>CPU: {serverStats.cpu}%</p>
-		<p>RAM: {formatBytes(serverStats.memory)} / {formatMegabytes(data.server.memoryLimit)}</p>
+		<p>RAM: {formatBytes(serverStats.memory)} / {formatMegabytes(server.memoryLimit)}</p>
 	{/if}
+
+	<Button variant="default" onclick={() => startServer(id)}>START</Button>
+	<Button variant="outline" onclick={() => stopServer(id)}>STOP</Button>
 {:else}
-	<p>Server not found.</p>
+	<p>:(</p>
 {/if}

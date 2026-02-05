@@ -1,13 +1,13 @@
 import { json, type RequestHandler } from '@sveltejs/kit';
 import { z } from 'zod';
-import { ServerStartSchema, type ServerStartPayload } from '$lib/server/servers/schema';
 import { startMinecraftServer } from '$lib/server/servers/actions';
 
-export const POST: RequestHandler = async ({ request }) => {
-    let payload: ServerStartPayload;
-    try {
-        const body = await request.json();
-        payload = ServerStartSchema.parse(body);
+export const POST: RequestHandler = async ({ params }) => {
+    let id: string = params.id ?? '';
+        let payload: { id: string } = { id };
+        try {
+            payload = z.object({ id: z.string() }).parse(payload);
+            startMinecraftServer(payload.id);
     } catch (error) {
         if (error instanceof z.ZodError) {
             return json(

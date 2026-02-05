@@ -1,8 +1,8 @@
 import { json, type RequestHandler } from '@sveltejs/kit';
 import { removeMinecraftServer } from '$lib/server/servers/actions';
 
-export const DELETE: RequestHandler = async ({ url }) => {
-	const id = url.searchParams.get('id');
+export const DELETE: RequestHandler = async ({ url, params }) => {
+	const id = params.id;
 	const deleteData = url.searchParams.get('deleteData') !== 'false';
 
 	if (!id) return json({ error: 'Missing server ID' }, { status: 400 });

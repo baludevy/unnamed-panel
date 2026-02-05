@@ -1,9 +1,10 @@
 import { json, type RequestHandler } from '@sveltejs/kit';
 import { editMinecraftServer } from '$lib/server/servers/actions';
 
-export const PATCH: RequestHandler = async ({ request }) => {
+export const PATCH: RequestHandler = async ({ request, params }) => {
 	try {
-		const { id, ...payload } = await request.json();
+		const id = params.id;
+		const { ...payload } = await request.json();
 
 		if (!id) {
 			return json({ error: 'Server ID is required' }, { status: 400 });
