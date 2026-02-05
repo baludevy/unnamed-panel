@@ -50,3 +50,13 @@ export const ServerStopSchema = z.object({
 });
 
 export type ServerStopPayload = z.infer<typeof ServerStopSchema>;
+
+export interface ServerStats {
+	id: string;
+	name: string;
+	cpu: number;
+	memory: number;
+	uptime: string;
+	status: string;
+	startTime?: number;
+}
