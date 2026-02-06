@@ -1,19 +1,18 @@
 import { json, type RequestHandler } from '@sveltejs/kit';
 import { editMinecraftServer } from '$lib/server/servers/actions';
+import { ErrorMessages } from '$lib/api/error_codes';
+import { parseId, zodError } from '../../../_helpers';
 
 export const PATCH: RequestHandler = async ({ request, params }) => {
-	try {
-		const id = params.id;
-		const { ...payload } = await request.json();
+	const parsed = parseId(params);
+	if (!parsed.success) return zodError(parsed.error);
 
-		if (!id) {
-			return json({ error: 'Server ID is required' }, { status: 400 });
-		}
+	const payload = await request.json();
+	const result = await editMinecraftServer(parsed.data.id, payload);
 
-		await editMinecraftServer(id, payload);
-
-		return json({ success: true });
-	} catch (err: any) {
-		return json({ error: err.message }, { status: 500 });
+	if (result.status === 'NOT_FOUND') {
+		return json({ code: result.status, message: ErrorMessages[result.status] }, { status: 404 });
 	}
+
+	return json({ success: true });
 };

@@ -1,31 +1,25 @@
 import { json, type RequestHandler } from '@sveltejs/kit';
-import { z } from 'zod';
 import { stopMinecraftServer } from '$lib/server/servers/actions';
+import { ErrorMessages } from '$lib/api/error_codes';
+import { parseId, zodError } from '../../../_helpers';
 
 export const POST: RequestHandler = async ({ params }) => {
-	let id: string = params.id ?? '';
-	let payload: { id: string } = { id };
-	try {
-		payload = z.object({ id: z.string() }).parse(payload);
-		stopMinecraftServer(payload.id);
-	} catch (error) {
-		if (error instanceof z.ZodError) {
-			return json(
-				{
-					error: 'Invalid request data',
-					details: error.issues.map((e) => ({ path: e.path, message: e.message }))
-				},
-				{ status: 400 }
-			);
-		}
-		return json({ error: 'Invalid json format submitted' }, { status: 400 });
+	const parsed = parseId(params);
+	if (!parsed.success) return zodError(parsed.error);
+
+	const result = await stopMinecraftServer(parsed.data.id);
+
+	switch (result.status) {
+		case 'NOT_FOUND':
+			return json({ code: result.status, message: ErrorMessages[result.status] }, { status: 404 });
+		case 'ALREADY_STOPPED':
+			return json({ code: result.status, message: ErrorMessages[result.status] }, { status: 400 });
+		case 'STOPPED':
+			return json({
+				code: result.status,
+				message: ErrorMessages[result.status]
+			});
 	}
 
-	try {
-		await stopMinecraftServer(payload.id);
-		return json({ message: `Server ${payload.id} stopped successfully` });
-	} catch (error: any) {
-		console.error(`Failed to stop server ${payload.id}:`, error.message);
-		return json({ error: 'Failed to stop server', details: error.message }, { status: 500 });
-	}
+	return json({ success: true });
 };

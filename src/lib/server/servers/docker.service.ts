@@ -80,11 +80,15 @@ export const DockerService = {
 	},
 
 	async startContainer(containerId: string) {
-		await docker.getContainer(containerId).start();
+		const inspect = await this.inspectContainer(containerId);
+		if (!inspect.State.Running) await docker.getContainer(containerId).start();
 	},
 
 	async stopContainer(containerId: string) {
-		await docker.getContainer(containerId).stop();
+		const inspect = await this.inspectContainer(containerId);
+		if (inspect.State.Running) {
+			await docker.getContainer(containerId).stop();
+		}
 	},
 
 	async inspectContainer(containerId: string) {
@@ -137,5 +141,10 @@ export const DockerService = {
 
 	async getContainerStats(containerId: string) {
 		return await docker.getContainer(containerId).stats({ stream: true });
+	},
+
+	async isRunning(containerId: string) {
+		const ins = await docker.getContainer(containerId).inspect();
+		return ins.State.Running;
 	}
 };

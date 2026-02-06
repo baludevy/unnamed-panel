@@ -19,85 +19,84 @@ async function refreshContainerCache() {
 	containerCache = await docker.listContainers({ all: true });
 }
 
+function findContainer(id: string, containerId: string | null) {
+	if (containerId) {
+		const direct = containerCache.find((c) => c.Id === containerId);
+		if (direct) return direct;
+	}
+
+	return containerCache.find((c) => c.Labels?.['mc.server_id'] === id) || null;
+}
+
+function deriveState(container: ContainerInfo | null) {
+	return container ? container.State : 'missing';
+}
+
 export async function listMinecraftServers(): Promise<MinecraftServerInfo[]> {
 	await refreshContainerCache();
 	const servers = await ServerRepository.getAll();
 
 	return servers.map((server) => {
-		const container =
-			containerCache.find((c) => c.Id === server.containerId) ||
-			containerCache.find((c) => c.Labels?.['mc.server_id'] === server.id);
-
-		const currentState = container ? container.State : 'missing';
-
-		const serverWithState = server as typeof server & { state?: string };
-
-		if (serverWithState.state !== currentState) {
-			ServerRepository.update(server.id, { state: currentState }).catch(() => {});
-		}
-
+		const container = findContainer(server.id, server.containerId);
 		return {
 			...server,
-			state: currentState
+			state: deriveState(container)
 		};
 	});
 }
 
 export async function getMinecraftServerById(id: string): Promise<MinecraftServerInfo | null> {
+	await refreshContainerCache();
 	const server = await ServerRepository.getById(id);
 	if (!server) return null;
 
-	const container =
-		containerCache.find((c) => c.Id === server.containerId) ||
-		containerCache.find((c) => c.Labels?.['mc.server_id'] === server.id);
-
-	const currentState = container ? container.State : 'missing';
-
-	const serverWithState = server as typeof server & { state?: string };
-
-	if (serverWithState.state !== currentState) {
-		ServerRepository.update(server.id, { state: currentState }).catch(() => {});
-	}
-
+	const container = findContainer(server.id, server.containerId);
 	return {
 		...server,
-		state: currentState
+		state: deriveState(container)
 	};
 }
 
 export async function createMinecraftServer(payload: ServerCreationPayload) {
-	const absDir = path.resolve(payload.directory);
+	const directory = path.resolve(payload.directory);
 
-	await ensurePortFree(payload.port);
+	const portCheck = await ensurePortFree(payload.port);
+	if (portCheck?.status === 'PORT_IN_USE') return portCheck;
+
 	for (const extra of payload.additionalPorts) {
-		await ensurePortFree(extra.host);
+		const res = await ensurePortFree(extra.host);
+		if (res?.status === 'PORT_IN_USE') return res;
 	}
 
-	await ensureDataDirFree(absDir);
+	const dirCheck = await ensureDataDirFree(directory);
+	if (dirCheck?.status === 'DATA_DIR_IN_USE') return dirCheck;
+
 	await ensureImageExists(MC_IMAGE);
 
 	const serverId = generateServerId();
 	const container = await DockerService.createServerContainer({
 		...payload,
 		serverId,
-		directory: absDir,
+		directory,
 		eula: true
 	});
 
-	const record = await ServerRepository.create(serverId, container.id, payload, absDir);
+	const record = await ServerRepository.create(serverId, container.id, payload, directory);
+
 	await refreshContainerCache();
 	return record;
 }
 
-export async function startMinecraftServer(serverId: string) {
+export type StartStatus = 'NOT_FOUND' | 'ALREADY_RUNNING' | 'STARTED';
+
+export async function startMinecraftServer(serverId: string): Promise<{ status: StartStatus }> {
 	const server = await ServerRepository.getById(serverId);
-	if (!server) throw new Error('Not found');
+	if (!server) return { status: 'NOT_FOUND' };
 
 	let container: ContainerInfo | null = await DockerService.findContainerByLabel(serverId);
-	let wasRecreated = false;
 
 	if (container) {
-		const needsFix = await DockerService.needsRecreation(container.Id, {
+		const recreate = await DockerService.needsRecreation(container.Id, {
 			port: server.port,
 			containerPort: server.containerPort,
 			additionalPorts: server.additionalPorts,
@@ -108,48 +107,56 @@ export async function startMinecraftServer(serverId: string) {
 			memoryLimit: server.memoryLimit
 		});
 
-		if (needsFix) {
+		if (recreate) {
 			await DockerService.stopAndRemove(container.Id);
 			container = null;
 		}
 	}
 
 	if (!container) {
-		const newC = await DockerService.createServerContainer({
+		const created = await DockerService.createServerContainer({
 			...server,
-			eula: true,
-			serverId: server.id,
-			directory: server.directory
+			serverId,
+			directory: server.directory,
+			eula: true
 		});
-		await ServerRepository.updateContainerId(server.id, newC.id);
-		wasRecreated = true;
+
+		await ServerRepository.updateContainerId(serverId, created.id);
+		await DockerService.startContainer(created.id);
+		await refreshContainerCache();
+		return { status: 'STARTED' };
 	}
 
-	if (!wasRecreated) {
-		const c = await DockerService.findContainerByLabel(serverId);
-		if (c) {
-			const inspect = await DockerService.inspectContainer(c.Id);
-			if (!inspect.State.Running) await DockerService.startContainer(c.Id);
-		}
+	if (await DockerService.isRunning(container.Id)) {
+		return { status: 'ALREADY_RUNNING' };
 	}
+
+	await DockerService.startContainer(container.Id);
 	await refreshContainerCache();
+	return { status: 'STARTED' };
 }
 
 export async function stopMinecraftServer(serverId: string) {
 	const server = await ServerRepository.getById(serverId);
-	if (!server) return;
-	try {
-		await DockerService.stopContainer(server.containerId || '');
-	} catch {
-		const c = await DockerService.findContainerByLabel(serverId);
-		if (c) await DockerService.stopContainer(c.Id);
+	if (!server) return { status: 'NOT_FOUND' };
+
+	const id = server.containerId || (await DockerService.findContainerByLabel(serverId))?.Id;
+
+	if (!id) return { status: 'NOT_FOUND' };
+
+	if (!(await DockerService.isRunning(id))) {
+		return { status: 'ALREADY_STOPPED' };
 	}
+
+	await DockerService.stopContainer(id);
 	await refreshContainerCache();
+	return { status: 'STOPPED' };
 }
 
 export async function restartMinecraftServer(serverId: string) {
-	await stopMinecraftServer(serverId);
-	await startMinecraftServer(serverId);
+	const stopped = await stopMinecraftServer(serverId);
+	if (stopped.status === 'NOT_FOUND') return stopped;
+	return startMinecraftServer(serverId);
 }
 
 export async function editMinecraftServer(
@@ -157,34 +164,44 @@ export async function editMinecraftServer(
 	payload: Partial<ServerCreationPayload>
 ) {
 	const server = await ServerRepository.getById(serverId);
-	if (!server) throw new Error('Not found');
+	if (!server) return { status: 'NOT_FOUND' };
 
-	const updated = {
-		...server,
-		...payload,
-		directory: payload.directory ? path.resolve(payload.directory) : server.directory
-	};
-
-	if (payload.port && payload.port !== server.port) await ensurePortFree(payload.port);
+	if (payload.port && payload.port !== server.port) {
+		const res = await ensurePortFree(payload.port);
+		if (res?.status === 'PORT_IN_USE') return res;
+	}
 
 	if (payload.additionalPorts) {
 		for (const extra of payload.additionalPorts) {
-			if (!server.additionalPorts.find((p: any) => p.host === extra.host)) {
-				await ensurePortFree(extra.host);
+			if (!server.additionalPorts.some((p: any) => p.host === extra.host)) {
+				const res = await ensurePortFree(extra.host);
+				if (res?.status === 'PORT_IN_USE') return res;
 			}
 		}
 	}
 
-	await ServerRepository.update(serverId, updated);
-	await refreshContainerCache();
+	await ServerRepository.update(serverId, {
+		...server,
+		...payload,
+		directory: payload.directory ? path.resolve(payload.directory) : server.directory
+	});
+
+	return { status: 'UPDATED' };
 }
 
 export async function removeMinecraftServer(serverId: string, deleteData = true) {
 	const server = await ServerRepository.getById(serverId);
-	if (!server) return false;
-	await DockerService.stopAndRemove(server.containerId || '');
-	if (deleteData) await fs.rm(server.directory, { recursive: true, force: true }).catch(() => {});
+	if (!server) return { status: 'NOT_FOUND' };
+
+	if (server.containerId) {
+		await DockerService.stopAndRemove(server.containerId);
+	}
+
+	if (deleteData) {
+		await fs.rm(server.directory, { recursive: true, force: true });
+	}
+
 	await ServerRepository.delete(serverId);
 	await refreshContainerCache();
-	return true;
+	return { status: 'REMOVED' };
 }
