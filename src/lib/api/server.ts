@@ -11,7 +11,7 @@ export async function getAllServerInfo(): Promise<ServerInfo[]> {
 }
 
 export async function getServerInfoById(id: string): Promise<ServerInfo> {
-	const response = await fetch(`/api/server/${id}`);
+	const response = await fetch(`/api/servers/${id}`);
 	if (!response.ok) {
 		throw new Error(`Failed to fetch server information for ID: ${id}`);
 	}
@@ -21,7 +21,7 @@ export async function getServerInfoById(id: string): Promise<ServerInfo> {
 }
 
 export async function startServer(id: string): Promise<void> {
-	const response = await fetch(`/api/server/${id}/start`, {
+	const response = await fetch(`/api/servers/${id}/start`, {
 		method: 'POST'
 	});
 	if (!response.ok) {
@@ -30,7 +30,7 @@ export async function startServer(id: string): Promise<void> {
 }
 
 export async function stopServer(id: string): Promise<void> {
-	const response = await fetch(`/api/server/${id}/stop`, {
+	const response = await fetch(`/api/servers/${id}/stop`, {
 		method: 'POST'
 	});
 	if (!response.ok) {
