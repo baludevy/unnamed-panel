@@ -34,6 +34,8 @@ export async function stopServer(id: string): Promise<void> {
 		method: 'POST'
 	});
 	if (!response.ok) {
-		throw new Error(`Failed to stop server with ID: ${id}`);
+		const errorData = await response.json();
+	
+		throw new Error(errorData.message || `Failed to stop server with ID: ${id}`);
 	}
 }
