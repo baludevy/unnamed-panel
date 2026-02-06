@@ -1,14 +1,21 @@
 import { json, type RequestHandler } from '@sveltejs/kit';
 import { removeMinecraftServer } from '$lib/server/servers/actions';
+import { ErrorMessages } from '$lib/api/error_codes';
+import { parseId, zodError } from '../../../_helpers';
 
-export const DELETE: RequestHandler = async ({ url, params }) => {
-	const id = params.id;
+export const DELETE: RequestHandler = async ({ params, url }) => {
+	const parsed = parseId(params);
+	if (!parsed.success) return zodError(parsed.error);
+
 	const deleteData = url.searchParams.get('deleteData') !== 'false';
+	const result = await removeMinecraftServer(parsed.data.id, deleteData);
 
-	if (!id) return json({ error: 'Missing server ID' }, { status: 400 });
-
-	const ok = await removeMinecraftServer(id, deleteData);
-	if (!ok) return json({ error: 'Server not found or already removed' }, { status: 404 });
+	if (result.status === 'NOT_FOUND') {
+		return json(
+			{ code: result.status, message: ErrorMessages[result.status] },
+			{ status: 404 }
+		);
+	}
 
 	return json({ success: true });
 };

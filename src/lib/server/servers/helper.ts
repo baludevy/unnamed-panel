@@ -44,14 +44,14 @@ export async function ensurePortFree(port: number) {
 			if (!p.PublicPort) continue;
 			if (p.Type !== 'tcp') continue;
 			if (Number(p.PublicPort) === port) {
-				throw new Error(`Port ${port} already in use`);
+				return { status: 'PORT_IN_USE' };
 			}
 		}
 	}
 
 	const freeOnHost = await checkPortOnHost(port);
 	if (!freeOnHost) {
-		throw new Error(`Port ${port} already in use`);
+		return { status: 'PORT_IN_USE' };
 	}
 }
 
@@ -60,7 +60,7 @@ export async function ensureDataDirFree(absDir: string) {
 	for (const c of containers) {
 		const labels = c.Labels || {};
 		if (labels['mc.data_dir'] && path.resolve(labels['mc.data_dir']) === path.resolve(absDir)) {
-			throw new Error(`Data directory already used by another server`);
+			return { status: 'DATA_DIR_IN_USE' };
 		}
 	}
 }

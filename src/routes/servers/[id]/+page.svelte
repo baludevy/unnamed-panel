@@ -35,6 +35,7 @@
 			eventSource.close();
 		};
 	}
+	
 </script>
 
 {#if server}

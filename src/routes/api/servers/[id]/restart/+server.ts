@@ -1,31 +1,23 @@
 import { json, type RequestHandler } from '@sveltejs/kit';
-import { z } from 'zod';
 import { restartMinecraftServer } from '$lib/server/servers/actions';
+import { ErrorMessages } from '$lib/api/error_codes';
+import { parseId, zodError } from '../../../_helpers';
 
 export const POST: RequestHandler = async ({ params }) => {
-	let id: string = params.id ?? '';
-	let payload: { id: string } = { id };
-	try {
-		payload = z.object({ id: z.string() }).parse(payload);
-		restartMinecraftServer(payload.id);
-	} catch (error) {
-		if (error instanceof z.ZodError) {
-			return json(
-				{
-					error: 'Invalid request data',
-					details: error.issues.map((e) => ({ path: e.path, message: e.message }))
-				},
-				{ status: 400 }
-			);
-		}
-		return json({ error: 'Invalid json format submitted' }, { status: 400 });
+	const parsed = parseId(params);
+	if (!parsed.success) return zodError(parsed.error);
+
+	const result = await restartMinecraftServer(parsed.data.id);
+
+	if (result?.status === 'NOT_FOUND') {
+		return json(
+			{ code: 'NOT_FOUND', message: ErrorMessages.NOT_FOUND },
+			{ status: 404 }
+		);
 	}
 
-	try {
-		await restartMinecraftServer(payload.id);
-		return json({ message: `Server ${payload.id} restarted successfully` });
-	} catch (error: any) {
-		console.error(`Failed to restart server ${payload.id}:`, error.message);
-		return json({ error: 'Failed to restart server', details: error.message }, { status: 500 });
-	}
+	return json({
+		code: 'RESTARTED',
+		message: `server ${parsed.data.id} restarted`
+	});
 };
