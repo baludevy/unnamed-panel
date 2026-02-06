@@ -5,7 +5,7 @@
 	import { getServerInfoById, startServer, stopServer } from '$lib/api/server';
 	import { page } from '$app/state';
 	import Button from '$lib/components/ui/button/button.svelte';
-
+	import { toast } from '$lib/toast';
 	let id: string = page.params.id ?? '';
 
 	let server: ServerInfo | null = null;
@@ -35,7 +35,18 @@
 			eventSource.close();
 		};
 	}
-	
+
+	function handleStart() {
+		startServer(id)
+			.then(() => toast.success('Server started!'))
+			.catch(() => toast.error('Failed to start server'));
+	}
+
+	function handleStop() {
+		stopServer(id)
+			.then(() => toast.success('Server stopped!'))
+			.catch((error) => toast.error(`${error.message}`));
+	}
 </script>
 
 {#if server}
@@ -45,8 +56,8 @@
 		<p>RAM: {formatBytes(serverStats.memory)} / {formatMegabytes(server.memoryLimit)}</p>
 	{/if}
 
-	<Button variant="default" onclick={() => startServer(id)}>START</Button>
-	<Button variant="outline" onclick={() => stopServer(id)}>STOP</Button>
+	<Button variant="default" onclick={() => {handleStart()}}>START</Button>
+	<Button variant="outline" onclick={() => {handleStop()}}>STOP</Button>
 {:else}
 	<p>:(</p>
 {/if}
