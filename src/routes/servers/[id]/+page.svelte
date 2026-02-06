@@ -17,7 +17,7 @@
 	});
 
 	function subscribeToStats() {
-		const eventSource = new EventSource(`/api/server/stats/${id}`);
+		const eventSource = new EventSource(`/api/servers/${id}/stats`);
 
 		eventSource.onmessage = (event) => {
 			try {
