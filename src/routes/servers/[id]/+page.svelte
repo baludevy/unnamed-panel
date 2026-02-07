@@ -2,10 +2,11 @@
 	import { onMount } from 'svelte';
 	import type { ServerInfo, ServerStats } from '$lib/server/servers/schema';
 	import { formatBytes, formatMegabytes } from '$lib/conversions';
-	import { getServerInfoById, startServer, stopServer } from '$lib/api/server';
+	import { getServerInfoById, startServer, restartServer, stopServer } from '$lib/api/server';
 	import { page } from '$app/state';
 	import Button from '$lib/components/ui/button/button.svelte';
 	import { toast } from '$lib/toast';
+
 	let id: string = page.params.id ?? '';
 
 	let server: ServerInfo | null = null;
@@ -39,7 +40,13 @@
 	function handleStart() {
 		startServer(id)
 			.then(() => toast.success('Server started!'))
-			.catch(() => toast.error('Failed to start server'));
+			.catch((error) => toast.error(`${error.message}`));
+	}
+
+	function handleRestart() {
+		restartServer(id)
+			.then(() => toast.warning('Server restarting...'))
+			.catch((error) => toast.error(`${error.message}`));
 	}
 
 	function handleStop() {
@@ -56,8 +63,29 @@
 		<p>RAM: {formatBytes(serverStats.memory)} / {formatMegabytes(server.memoryLimit)}</p>
 	{/if}
 
-	<Button variant="default" onclick={() => {handleStart()}}>START</Button>
-	<Button variant="outline" onclick={() => {handleStop()}}>STOP</Button>
+	<Button
+		variant="default"
+		onclick={() => {
+			handleStart();
+		}}
+		disabled={serverStats?.status === 'running'}>START</Button
+	>
+
+	<Button
+		variant="outline"
+		onclick={() => {
+			handleRestart();
+		}}
+		disabled={serverStats?.status !== 'running' || serverStats === null}>RESTART</Button
+	>
+
+	<Button
+		variant="destructive"
+		onclick={() => {
+			handleStop();
+		}}
+		disabled={serverStats?.status === 'stopped' || serverStats === null}>STOP</Button
+	>
 {:else}
 	<p>:(</p>
 {/if}
