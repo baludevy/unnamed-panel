@@ -40,6 +40,7 @@
 		"dockerode": "^4.0.9",
 		"lucide-svelte": "^0.563.0",
 		"mode-watcher": "^1.1.0",
+		"rcon-client": "^4.2.5",
 		"tailwindcss": "^4.1.18",
 		"zod": "^4.3.6"
 	}

@@ -24,13 +24,16 @@ export const POST: RequestHandler = async ({ request }) => {
 
 	try {
 		const server = await createMinecraftServer(payload);
-		return json(
-			{
-				...server,
-				message: `Server ${server.name} created and started successfully`
-			},
-			{ status: 201 }
-		);
+		if ('name' in server) {
+			return json(
+				{
+					...server,
+					message: `Server ${server.name} created and started successfully`
+				},
+				{ status: 201 }
+			);
+		}
+		return json(server, { status: 201 });
 	} catch (error: any) {
 		console.error('Docker operation failed:', error.message);
 		return json({ error: 'Failed to create server', details: error.message }, { status: 500 });

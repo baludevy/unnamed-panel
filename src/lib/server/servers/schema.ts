@@ -13,6 +13,7 @@ export interface MinecraftServerInfo {
 	state: string;
 	cpuLimit: number;
 	memoryLimit: number;
+	rconPassword: string;
 }
 
 export interface ServerInfo extends MinecraftServerInfo {
@@ -49,7 +50,12 @@ export const ServerCreateSchema = z.object({
 	directory: z.string(),
 	eula: z.boolean().refine((val) => val === true, { message: 'EULA must be accepted' }),
 	cpuLimit: z.number().min(0.5).max(16).default(2),
-	memoryLimit: z.number().min(512).max(32768).default(2048)
+	memoryLimit: z.number().min(512).max(32768).default(2048),
+	rconPort: z.number().int().min(1024).max(65535).default(25575),
+	rconPassword: z
+		.string()
+		.min(8)
+		.default(() => Math.random().toString(36).slice(-8))
 });
 
 export type ServerCreationPayload = z.infer<typeof ServerCreateSchema>;

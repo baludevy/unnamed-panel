@@ -1,39 +1,40 @@
-import { getAllStats, getOrStartStats, getStats } from '$lib/server/servers/stats';
+import { getAllStats, getOrStartStats } from '$lib/server/servers/stats';
 import { ServerRepository } from '$lib/server/servers/repository';
 
-export const GET = async ({}) => {
+export const GET = async ({ request }) => {
+	const encoder = new TextEncoder();
 	let intervalId: NodeJS.Timeout;
 
 	const stream = new ReadableStream({
 		async start(controller) {
-			const encoder = new TextEncoder();
-
 			const sendUpdates = async () => {
-				if (controller.desiredSize === null) {
+				if (request.signal.aborted) {
 					clearInterval(intervalId);
+					try { controller.close(); } catch { }
 					return;
 				}
 
 				try {
 					const servers = await ServerRepository.getAll();
-					for (const server of servers) {
-						if (server.containerId) {
-							await getOrStartStats(server.id, server.containerId, server.name);
-						}
-					}
+					
+					await Promise.allSettled(
+						servers
+							.filter(s => s.containerId)
+							.map(s => getOrStartStats(s.id, s.containerId!, s.name))
+					);
 
 					const allStats = getAllStats();
-					controller.enqueue(encoder.encode(`data: ${JSON.stringify(allStats)}\n\n`));
+					const chunk = encoder.encode(`data: ${JSON.stringify(allStats)}\n\n`);
+					
+					if (controller.desiredSize !== null && controller.desiredSize > 0) {
+						controller.enqueue(chunk);
+					}
 				} catch (err) {
-					clearInterval(intervalId);
-					try {
-						controller.close();
-					} catch {}
+					console.error('SSE Update Error:', err);
 				}
 			};
 
 			await sendUpdates();
-
 			intervalId = setInterval(sendUpdates, 1000);
 		},
 		cancel() {
@@ -44,8 +45,9 @@ export const GET = async ({}) => {
 	return new Response(stream, {
 		headers: {
 			'Content-Type': 'text/event-stream',
-			'Cache-Control': 'no-cache',
-			Connection: 'keep-alive'
+			'Cache-Control': 'no-cache, no-transform',
+			'Connection': 'keep-alive',
+			'X-Accel-Buffering': 'no'
 		}
 	});
 };

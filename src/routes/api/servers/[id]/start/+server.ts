@@ -11,19 +11,14 @@ export const POST: RequestHandler = async ({ params }) => {
 
 	switch (result.status) {
 		case 'NOT_FOUND':
-			return json(
-				{ code: result.status, message: ErrorMessages[result.status] },
-				{ status: 404 }
-			);
+			return json({ code: result.status, message: ErrorMessages[result.status] }, { status: 404 });
 		case 'ALREADY_RUNNING':
-			return json(
-				{ code: result.status, message: ErrorMessages[result.status] },
-				{ status: 400 }
-			);
+			return json({ code: result.status, message: ErrorMessages[result.status] }, { status: 400 });
 		case 'STARTED':
 			return json({
 				code: result.status,
 				message: ErrorMessages[result.status]
 			});
 	}
+	return json({ success: true });
 };
