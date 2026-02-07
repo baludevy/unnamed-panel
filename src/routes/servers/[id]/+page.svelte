@@ -13,32 +13,17 @@
 	import Button from '$lib/components/ui/button/button.svelte';
 	import { toast } from '$lib/toast';
 	import Console from '$lib/components/ui/console/console.svelte';
-
-	interface LogEntry {
-		text: string;
-		timestamp: string;
-		type: 'info' | 'warn' | 'error' | 'system';
-	}
+	import type { Log } from '$lib/components/ui/console';
 
 	let id = $derived(page.params.id ?? '');
 	let server = $state<ServerInfo | null>(null);
 	let serverStats = $state<ServerStats | null>(null);
 	let statsEventSource: EventSource | null = null;
 
-	let logs = $state<LogEntry[]>([]);
-	let logsEventSource: EventSource | null = null;
+	let logs: Log[] = [];
 
 	let reconnectTimeout: ReturnType<typeof setTimeout>;
 	let processing = $state(false);
-
-	function getLogType(line: string): LogEntry['type'] {
-		const upper = line.toUpperCase();
-		if (upper.includes('/WARN') || upper.includes('WARNING')) return 'warn';
-		if (upper.includes('/ERROR') || upper.includes('SEVERE') || upper.includes('EXCEPTION'))
-			return 'error';
-		if (line.startsWith('[init]') || line.startsWith('Starting')) return 'system';
-		return 'info';
-	}
 
 	async function init(targetId: string) {
 		cleanup();
@@ -46,7 +31,6 @@
 			server = await getServerInfoById(targetId);
 			if (server) {
 				connectStats(targetId);
-				connectLogs(targetId);
 			} else {
 				toast.error('Server not found');
 			}
@@ -73,42 +57,11 @@
 		};
 	}
 
-	function connectLogs(targetId: string) {
-		if (logsEventSource) logsEventSource.close();
-		logsEventSource = new EventSource(`/api/servers/${targetId}/logs`);
-
-		logsEventSource.onmessage = (event) => {
-			try {
-				const data = JSON.parse(event.data);
-				const line = data.line || '';
-				if (!line) return;
-
-				const newLog: LogEntry = {
-					text: line,
-					timestamp: data.timestamp || new Date().toISOString(),
-					type: getLogType(line)
-				};
-
-				logs = [...logs.slice(-499), newLog];
-			} catch (e) {
-				console.error('Log parse error', e);
-			}
-		};
-
-		logsEventSource.onerror = () => {
-			logsEventSource?.close();
-			clearTimeout(reconnectTimeout);
-			reconnectTimeout = setTimeout(() => connectLogs(targetId), 5000);
-		};
-	}
-
 	function cleanup() {
 		if (statsEventSource) statsEventSource.close();
-		if (logsEventSource) logsEventSource.close();
 		clearTimeout(reconnectTimeout);
 		server = null;
 		serverStats = null;
-		logs = [];
 	}
 
 	async function handleAction(

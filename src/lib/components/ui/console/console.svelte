@@ -1,8 +1,5 @@
 <script lang="ts">
-	interface Log {
-		text: string;
-		type: 'info' | 'warn' | 'error' | 'system';
-	}
+	import type { Log } from '.';
 
 	interface Props {
 		logs: Log[];
