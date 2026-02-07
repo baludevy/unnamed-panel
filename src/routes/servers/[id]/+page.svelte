@@ -1,59 +1,81 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onDestroy } from 'svelte';
 	import type { ServerInfo, ServerStats } from '$lib/server/servers/schema';
-	import { formatBytes, formatBytesAuto, formatMegabytes } from '$lib/conversions';
+	import { formatBytesAuto } from '$lib/conversions';
 	import { getServerInfoById, startServer, restartServer, stopServer } from '$lib/api/server';
 	import { page } from '$app/state';
 	import Button from '$lib/components/ui/button/button.svelte';
 	import { toast } from '$lib/toast';
 
-	let id: string = page.params.id ?? '';
+	let id = $derived(page.params.id ?? '');
+	let server = $state<ServerInfo | null>(null);
+	let serverStats = $state<ServerStats | null>(null);
+	let eventSource: EventSource | null = null;
+	let reconnectTimeout: ReturnType<typeof setTimeout>;
+	let processing = $state(false);
 
-	let server: ServerInfo | null = null;
-	let serverStats: ServerStats | null = null;
+	async function init(targetId: string) {
+		cleanup();
+		try {
+			server = await getServerInfoById(targetId);
+			if (server) connectStats(targetId);
+		} catch (err) {
+			toast.error('Could not fetch server information');
+		}
+	}
 
-	onMount(async () => {
-		subscribeToStats();
-		server = await getServerInfoById(id);
-	});
+	function connectStats(targetId: string) {
+		if (eventSource) eventSource.close();
 
-	function subscribeToStats() {
-		const eventSource = new EventSource(`/api/servers/${id}/stats`);
+		eventSource = new EventSource(`/api/servers/${targetId}/stats`);
 
 		eventSource.onmessage = (event) => {
 			try {
-				serverStats = JSON.parse(event.data);
-			} catch (err) {
-				console.error('Failed to parse stats:', err);
+				const data = JSON.parse(event.data);
+				if (data) serverStats = data;
+			} catch {
+				console.error('Failed to parse server stats');
 			}
 		};
 
 		eventSource.onerror = () => {
-			eventSource.close();
-		};
-
-		return () => {
-			eventSource.close();
+			eventSource?.close();
+			clearTimeout(reconnectTimeout);
+			reconnectTimeout = setTimeout(() => connectStats(targetId), 5000);
 		};
 	}
 
-	function handleStart() {
-		startServer(id)
-			.then(() => toast.success('Server started!'))
-			.catch((error) => toast.error(`${error.message}`));
+	function cleanup() {
+		if (eventSource) eventSource.close();
+		clearTimeout(reconnectTimeout);
+		server = null;
+		serverStats = null;
 	}
 
-	function handleRestart() {
-		restartServer(id)
-			.then(() => toast.warning('Server restarting...'))
-			.catch((error) => toast.error(`${error.message}`));
+	async function handleAction(
+		action: (id: string) => Promise<any>,
+		successMsg: string,
+		isWarning = false
+	) {
+		if (processing || !id) return;
+		processing = true;
+		try {
+			await action(id);
+			if (isWarning) toast.warning(successMsg);
+			else toast.success(successMsg);
+		} catch (err: any) {
+			toast.error(err.message || 'Action failed');
+		} finally {
+			processing = false;
+		}
 	}
 
-	function handleStop() {
-		stopServer(id)
-			.then(() => toast.success('Server stopped!'))
-			.catch((error) => toast.error(`${error.message}`));
-	}
+	$effect(() => {
+		if (id) init(id);
+		return cleanup;
+	});
+
+	onDestroy(cleanup);
 </script>
 
 {#if server}
@@ -67,9 +89,9 @@
 		</p>
 		<p>Uptime: {serverStats.uptime}</p>
 		<p>
-			Network:
-			{formatBytesAuto(serverStats.networkInbound)} in /
-			{formatBytesAuto(serverStats.networkOutbound)} out
+			Network: {formatBytesAuto(serverStats.networkInbound)} in / {formatBytesAuto(
+				serverStats.networkOutbound
+			)} out
 		</p>
 		<p>Version: {server.version} {server.type}</p>
 		<p>Address: {server.name}:{server.port}</p>
@@ -78,27 +100,27 @@
 
 	<Button
 		variant="default"
-		onclick={() => {
-			handleStart();
-		}}
-		disabled={serverStats?.status === 'running'}>START</Button
+		onclick={() => handleAction(startServer, 'Server started!')}
+		disabled={processing || serverStats?.status === 'running'}
 	>
+		START
+	</Button>
 
 	<Button
 		variant="outline"
-		onclick={() => {
-			handleRestart();
-		}}
-		disabled={serverStats?.status !== 'running' || serverStats === null}>RESTART</Button
+		onclick={() => handleAction(restartServer, 'Server restarting...', true)}
+		disabled={processing || !serverStats || serverStats.status !== 'running'}
 	>
+		RESTART
+	</Button>
 
 	<Button
 		variant="destructive"
-		onclick={() => {
-			handleStop();
-		}}
-		disabled={serverStats?.status === 'stopped' || serverStats === null}>STOP</Button
+		onclick={() => handleAction(stopServer, 'Server stopped!')}
+		disabled={processing || !serverStats || serverStats.status === 'offline'}
 	>
-{:else}
+		STOP
+	</Button>
+{:else if !processing}
 	<p>:(</p>
 {/if}

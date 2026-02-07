@@ -7,17 +7,21 @@ datasource db {
 }
 
 model Server {
-  id              String   @id
-  containerId     String?  @unique
+  id              String  @id
+  containerId     String? @unique
   name            String
-  port            Int      @unique
-  containerPort   Int      @default(25565)
-  additionalPorts String   @default("[]")
+  port            Int     @unique
+  containerPort   Int     @default(25565)
+  additionalPorts String  @default("[]")
   version         String
   type            String
   directory       String
-  cpuLimit        Float    @default(2.0)
-  memoryLimit     Int      @default(2048)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  cpuLimit        Float   @default(2.0)
+  memoryLimit     Int     @default(2048)
+
+  rconPort     Int    @default(25575)
+  rconPassword String @default("")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

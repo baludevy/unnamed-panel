@@ -24,6 +24,8 @@ export const DockerService = {
 		eula: boolean;
 		cpuLimit: number;
 		memoryLimit: number;
+		rconPort: number;
+		rconPassword: string;
 	}) {
 		const exposedPorts: any = {};
 		const portBindings: any = {};
@@ -31,6 +33,10 @@ export const DockerService = {
 		const mainContainerPort = `${params.containerPort}/tcp`;
 		exposedPorts[mainContainerPort] = {};
 		portBindings[mainContainerPort] = [{ HostPort: String(params.port) }];
+
+		const rconKey = `${params.rconPort}/tcp`;
+		exposedPorts[rconKey] = {};
+		portBindings[rconKey] = [{ HostPort: String(params.rconPort) }];
 
 		for (const mapping of params.additionalPorts) {
 			const cPort = `${mapping.container}/tcp`;
@@ -54,7 +60,10 @@ export const DockerService = {
 				`EULA=${params.eula}`,
 				`VERSION=${params.version}`,
 				`TYPE=${params.type}`,
-				`SERVER_PORT=${params.containerPort}`
+				`SERVER_PORT=${params.containerPort}`,
+				`ENABLE_RCON=true`,
+				`RCON_PASSWORD=${params.rconPassword}`,
+				`RCON_PORT=${params.rconPort}`
 			],
 			ExposedPorts: exposedPorts,
 			HostConfig: {
@@ -106,6 +115,8 @@ export const DockerService = {
 			directory: string;
 			cpuLimit: number;
 			memoryLimit: number;
+			rconPort: number;
+			rconPassword: string;
 		}
 	) {
 		try {
@@ -115,11 +126,15 @@ export const DockerService = {
 			if (!currentEnv.includes(`VERSION=${expected.version}`)) return true;
 			if (!currentEnv.includes(`TYPE=${expected.type}`)) return true;
 			if (!currentEnv.includes(`SERVER_PORT=${expected.containerPort}`)) return true;
+			if (!currentEnv.includes(`RCON_PORT=${expected.rconPort}`)) return true;
 
 			const bindings = inspect.HostConfig.PortBindings || {};
 
 			const mainKey = `${expected.containerPort}/tcp`;
 			if (bindings[mainKey]?.[0]?.HostPort !== String(expected.port)) return true;
+
+			const rconKey = `${expected.rconPort}/tcp`;
+			if (bindings[rconKey]?.[0]?.HostPort !== String(expected.rconPort)) return true;
 
 			for (const map of expected.additionalPorts) {
 				const key = `${map.container}/tcp`;
@@ -146,5 +161,15 @@ export const DockerService = {
 	async isRunning(containerId: string) {
 		const ins = await docker.getContainer(containerId).inspect();
 		return ins.State.Running;
-	}
+	},
+
+	async getContainerLogs(containerId: string) {
+        const container = docker.getContainer(containerId);
+        return await container.logs({
+            follow: true,
+            stdout: true,
+            stderr: true,
+            tail: 100
+        });
+    }
 };

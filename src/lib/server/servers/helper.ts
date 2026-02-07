@@ -1,6 +1,7 @@
 import docker from '$lib/server/docker/client';
 import path from 'node:path';
 import net from 'node:net';
+import crypto from 'node:crypto';
 import { DockerService } from './docker.service';
 import type { ContainerInfo } from 'dockerode';
 import { ServerRepository } from './repository';
@@ -77,7 +78,9 @@ export async function ensureContainerMatchesDb(server: any) {
 			type: server.type,
 			directory: server.directory,
 			cpuLimit: server.cpuLimit,
-			memoryLimit: server.memoryLimit
+			memoryLimit: server.memoryLimit,
+			rconPort: server.rconPort,
+			rconPassword: server.rconPassword
 		});
 
 		if (needsFix) {
@@ -98,7 +101,9 @@ export async function ensureContainerMatchesDb(server: any) {
 			eula: true,
 			serverId: server.id,
 			cpuLimit: server.cpuLimit,
-			memoryLimit: server.memoryLimit
+			memoryLimit: server.memoryLimit,
+			rconPort: server.rconPort,
+			rconPassword: server.rconPassword
 		});
 
 		await ServerRepository.updateContainerId(server.id, newContainer.id);
@@ -110,4 +115,8 @@ export async function ensureContainerMatchesDb(server: any) {
 
 export function generateServerId() {
 	return 'srv_' + Math.random().toString(36).slice(2, 10);
+}
+
+export function generateRconPassword() {
+	return crypto.randomBytes(24).toString('hex');
 }
