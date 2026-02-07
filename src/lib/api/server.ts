@@ -52,3 +52,16 @@ export async function stopServer(id: string): Promise<void> {
 		throw new Error(errorData.message || `Failed to stop server with ID: ${id}`);
 	}
 }
+
+export async function sendRconCommand(id: string, command: string): Promise<void> {
+	const response = await fetch(`/api/servers/${id}/rcon`, {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json'
+		},
+		body: JSON.stringify({ command })
+	});
+	if (!response.ok) {
+		throw new Error(`Failed to send RCON command to server with ID: ${id}`);
+	}
+}

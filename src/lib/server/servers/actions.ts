@@ -125,7 +125,7 @@ export async function createMinecraftServer(payload: ServerCreationPayload) {
 
 export type StartStatus = 'NOT_FOUND' | 'ALREADY_RUNNING' | 'STARTED' | 'ERROR';
 
-export async function startMinecraftServer(serverId: string): Promise<{ status: StartStatus }> {
+export async function startMinecraftServer(serverId: string) {
 	try {
 		const server = await ServerRepository.getById(serverId);
 		if (!server) return { status: 'NOT_FOUND' };
@@ -152,6 +152,8 @@ export async function startMinecraftServer(serverId: string): Promise<{ status: 
 			}
 		}
 
+		let targetContainerId: string;
+
 		if (!container) {
 			const created = await DockerService.createServerContainer({
 				...server,
@@ -159,20 +161,33 @@ export async function startMinecraftServer(serverId: string): Promise<{ status: 
 				directory: server.directory,
 				eula: true
 			});
-
-			await ServerRepository.updateContainerId(serverId, created.id);
-			await DockerService.startContainer(created.id);
+			targetContainerId = created.id;
+			await ServerRepository.updateContainerId(serverId, targetContainerId);
 		} else {
-			if (await DockerService.isRunning(container.Id)) {
+			targetContainerId = container.Id;
+			if (!(await DockerService.isRunning(targetContainerId))) {
+				await DockerService.startContainer(targetContainerId);
+			} else {
 				return { status: 'ALREADY_RUNNING' };
 			}
-			await DockerService.startContainer(container.Id);
 		}
 
-		await refreshContainerCache();
+		setTimeout(async () => {
+			let attempts = 0;
+			const maxAttempts = 10;
+			while (attempts < maxAttempts) {
+				try {
+					await RconService.getConnection(serverId);
+					break;
+				} catch {
+					attempts++;
+					await new Promise((resolve) => setTimeout(resolve, 3000));
+				}
+			}
+		}, 1000);
+
 		return { status: 'STARTED' };
-	} catch (error) {
-		console.error('Start sequence failed:', error);
+	} catch {
 		return { status: 'ERROR' };
 	}
 }
