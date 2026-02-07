@@ -25,7 +25,20 @@ export async function startServer(id: string): Promise<void> {
 		method: 'POST'
 	});
 	if (!response.ok) {
-		throw new Error(`Failed to start server with ID: ${id}`);
+		const errorData = await response.json();
+
+		throw new Error(errorData.message || `Failed to start server with ID: ${id}`);
+	}
+}
+
+export async function restartServer(id: string): Promise<void> {
+	const response = await fetch(`/api/servers/${id}/restart`, {
+		method: 'POST'
+	});
+	if (!response.ok) {
+		const errorData = await response.json();
+
+		throw new Error(errorData.message || `Failed to restart server with ID: ${id}`);
 	}
 }
 
@@ -35,7 +48,7 @@ export async function stopServer(id: string): Promise<void> {
 	});
 	if (!response.ok) {
 		const errorData = await response.json();
-	
+
 		throw new Error(errorData.message || `Failed to stop server with ID: ${id}`);
 	}
 }

@@ -35,13 +35,15 @@
 	{#each servers as server}
 		{@const live = serverStats[server.id]}
 
-		<Server
-			serverName={server.name}
-			status={live?.status || server.state}
-			cpuUsage={live?.cpu || 0}
-			memoryUsage={live?.memory || 0}
-			memoryLimit={server.memoryLimit || 0}
-			uptime={live?.uptime || '00:00:00'}
-		/>
+		<a href="/servers/{server.id}">
+			<Server
+				serverName={server.name}
+				status={live?.status || server.state}
+				cpuUsage={live?.cpu || 0}
+				memoryUsage={live?.memory || 0}
+				memoryLimit={server.memoryLimit || 0}
+				uptime={live?.uptime || '00:00:00'}
+			/>
+		</a>
 	{/each}
 </div>
