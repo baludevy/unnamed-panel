@@ -16,6 +16,7 @@
 
 	interface LogEntry {
 		text: string;
+		timestamp: string;
 		type: 'info' | 'warn' | 'error' | 'system';
 	}
 
@@ -84,6 +85,7 @@
 
 				const newLog: LogEntry = {
 					text: line,
+					timestamp: data.timestamp || new Date().toISOString(),
 					type: getLogType(line)
 				};
 
@@ -136,69 +138,82 @@
 </script>
 
 {#if server}
-	<div class="p-6">
-		<h1 class="text-2xl font-bold mb-4">{server.name}</h1>
+	<div class="flex flex-col items-center justify-center p-6">
+		<!--<h1 class="text-2xl font-bold mb-4">{server.name}</h1>
 
 		{#if serverStats}
-			<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 text-sm">
-				<div class="p-3 bg-secondary rounded shadow-sm">
-					<span class="block text-muted-foreground uppercase text-[10px]">CPU</span>
-					<strong>{serverStats.cpu}%</strong>
-				</div>
-				<div class="p-3 bg-secondary rounded shadow-sm">
-					<span class="block text-muted-foreground uppercase text-[10px]">RAM</span>
-					<strong>
-						{formatBytesAuto(serverStats.memory)} / {formatBytesAuto(
-							server.memoryLimit * 1024 * 1024
-						)}
-					</strong>
-				</div>
-				<div class="p-3 bg-secondary rounded shadow-sm">
-					<span class="block text-muted-foreground uppercase text-[10px]">Status</span>
-					<strong class="capitalize">{serverStats.status}</strong>
-				</div>
-				<div class="p-3 bg-secondary rounded shadow-sm">
-					<span class="block text-muted-foreground uppercase text-[10px]">Version</span>
-					<strong>{server.version}</strong>
+			<div>
+				<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 text-sm">
+					<div class="p-3 bg-secondary rounded shadow-sm">
+						<span class="block text-muted-foreground uppercase text-[10px]">CPU</span>
+						<strong>{serverStats.cpu}%</strong>
+					</div>
+					<div class="p-3 bg-secondary rounded shadow-sm">
+						<span class="block text-muted-foreground uppercase text-[10px]">RAM</span>
+						<strong>
+							{formatBytesAuto(serverStats.memory)} / {formatBytesAuto(
+								server.memoryLimit * 1024 * 1024
+							)}
+						</strong>
+					</div>
+					<div class="p-3 bg-secondary rounded shadow-sm">
+						<span class="block text-muted-foreground uppercase text-[10px]">Status</span>
+						<strong class="capitalize">{serverStats.status}</strong>
+					</div>
+					<div class="p-3 bg-secondary rounded shadow-sm">
+						<span class="block text-muted-foreground uppercase text-[10px]">Version</span>
+						<strong>{server.version}</strong>
+					</div>
 				</div>
 			</div>
-		{/if}
+		{/if}!-->
 
-		<Console
-			{logs}
-			onCommand={async (cmd) => {
-				try {
-					await sendRconCommand(id, cmd);
-				} catch (err) {
-					toast.error('Failed to send command');
-				}
-			}}
-		/>
+		<div></div>
 
-		<div class="flex gap-2 mt-4">
-			<Button
-				variant="default"
-				onclick={() => handleAction(startServer, 'Server started!')}
-				disabled={processing || serverStats?.status === 'running'}
-			>
-				START
-			</Button>
+		<div class="w-[80%]">
+			<div class="flex justify-between items-center mb-4">
+				<h1 class="text-2xl font-bold">{server.name}</h1>
+				<div class="flex gap-2">
+					<Button
+						variant="default"
+						onclick={() => handleAction(startServer, 'Server started!')}
+						disabled={processing || serverStats?.status === 'running'}
+					>
+						START
+					</Button>
 
-			<Button
-				variant="outline"
-				onclick={() => handleAction(restartServer, 'Server restarting...', true)}
-				disabled={processing || !serverStats || serverStats.status !== 'running'}
-			>
-				RESTART
-			</Button>
+					<Button
+						variant="outline"
+						onclick={() => handleAction(restartServer, 'Server restarting...', true)}
+						disabled={processing || !serverStats || serverStats.status !== 'running'}
+					>
+						RESTART
+					</Button>
 
-			<Button
-				variant="destructive"
-				onclick={() => handleAction(stopServer, 'Server stopped!')}
-				disabled={processing || !serverStats || serverStats.status === 'offline'}
-			>
-				STOP
-			</Button>
+					<Button
+						variant="destructive"
+						onclick={() => handleAction(stopServer, 'Server stopped!')}
+						disabled={processing || !serverStats || serverStats.status === 'offline'}
+					>
+						STOP
+					</Button>
+				</div>
+			</div>
+			<div class="w-[80%]">
+				<Console
+					{logs}
+					onCommand={async (cmd) => {
+						try {
+							await sendRconCommand(id, cmd);
+						} catch (err) {
+							toast.error('Failed to send command');
+						}
+					}}
+				/>
+			</div>
+			<div class="w-[20%]">
+				<div class="flex flex-col gap-2"></div>
+			</div>
 		</div>
 	</div>
 {:else if !processing}
