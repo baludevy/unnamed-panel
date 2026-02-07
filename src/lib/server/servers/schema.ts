@@ -26,6 +26,8 @@ export interface ServerStats {
 	cpu: number;
 	memory: number;
 	uptime: string;
+	networkInbound: number;
+	networkOutbound: number;
 	status: string;
 	startTime?: number;
 }

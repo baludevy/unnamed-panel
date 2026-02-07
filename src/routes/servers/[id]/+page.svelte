@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import type { ServerInfo, ServerStats } from '$lib/server/servers/schema';
-	import { formatBytes, formatMegabytes } from '$lib/conversions';
+	import { formatBytes, formatBytesAuto, formatMegabytes } from '$lib/conversions';
 	import { getServerInfoById, startServer, restartServer, stopServer } from '$lib/api/server';
 	import { page } from '$app/state';
 	import Button from '$lib/components/ui/button/button.svelte';
@@ -60,7 +60,20 @@
 	<h1>{server.name}</h1>
 	{#if serverStats}
 		<p>CPU: {serverStats.cpu}%</p>
-		<p>RAM: {formatBytes(serverStats.memory)} / {formatMegabytes(server.memoryLimit)}</p>
+		<p>
+			RAM: {formatBytesAuto(serverStats.memory)} / {formatBytesAuto(
+				server.memoryLimit * 1024 * 1024
+			)}
+		</p>
+		<p>Uptime: {serverStats.uptime}</p>
+		<p>
+			Network:
+			{formatBytesAuto(serverStats.networkInbound)} in /
+			{formatBytesAuto(serverStats.networkOutbound)} out
+		</p>
+		<p>Version: {server.version} {server.type}</p>
+		<p>Address: {server.name}:{server.port}</p>
+		<p>Status: {serverStats.status}</p>
 	{/if}
 
 	<Button
