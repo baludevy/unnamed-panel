@@ -164,12 +164,12 @@ export const DockerService = {
 	},
 
 	async getContainerLogs(containerId: string) {
-        const container = docker.getContainer(containerId);
-        return await container.logs({
-            follow: true,
-            stdout: true,
-            stderr: true,
-            tail: 100
-        });
-    }
+		const container = docker.getContainer(containerId);
+		return await container.logs({
+			follow: true,
+			stdout: true,
+			stderr: true,
+			tail: 100
+		});
+	}
 };
