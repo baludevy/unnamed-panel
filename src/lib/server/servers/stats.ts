@@ -54,12 +54,23 @@ export async function getOrStartStats(
 				const cpuPercent =
 					systemDelta > 0 ? (cpuDelta / systemDelta) * (stats.cpu_stats.online_cpus || 1) * 100 : 0;
 
+				const networks = stats.networks || {};
+				let networkInbound = 0;
+				let networkOutbound = 0;
+
+				for (const net of Object.values<any>(networks)) {
+					networkInbound += net.rx_bytes || 0;
+					networkOutbound += net.tx_bytes || 0;
+				}
+
 				statsCache.set(serverId, {
 					name: serverName,
 					id: serverId,
 					cpu: Number(cpuPercent.toFixed(2)),
 					memory: stats.memory_stats.usage || 0,
 					uptime: formatDuration(startTime),
+					networkInbound,
+					networkOutbound,
 					status: Restarting ? 'restarting' : Status,
 					startTime
 				});
